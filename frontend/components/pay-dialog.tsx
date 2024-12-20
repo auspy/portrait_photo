@@ -58,11 +58,17 @@ const PlanCard: React.FC<Plan> = ({
       const response = await axios.post("/api/create-checkout-session", {
         user_id: userDetails.id,
         email: userEmail,
-        plan_name: "Text Behind Image Pro Plan",
+        plan_name: "Picture Outline Generator Pro Plan",
       });
 
       router.push(response.data.paymentLink);
     } catch (error) {
+      console.error("Error creating checkout session:", error);
+      toast({
+        title: "Error",
+        description: "Failed to create checkout session",
+        variant: "destructive",
+      });
     } finally {
       setLoading(false);
     }
@@ -182,9 +188,9 @@ const PayDialog: React.FC<PayDialogProps> = ({
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-2xl">
         <DialogHeader>
-          <DialogTitle>Payment Plans</DialogTitle>
+          <DialogTitle>Picture Outline Generator Plans</DialogTitle>
           <DialogDescription>
-            Please select a payment plan below.
+            Choose a plan to enhance your image outlines
           </DialogDescription>
         </DialogHeader>
         <div className="grid md:grid-cols-2 gap-6 max-w-sm md:max-w-none">
@@ -192,22 +198,27 @@ const PayDialog: React.FC<PayDialogProps> = ({
             userDetails={userDetails}
             userEmail={userEmail}
             title="Free"
-            description="The text behind image experience with some limitations"
+            description="Basic outline generation with limitations"
             price="$0"
             features={[
-              "2 free generations / account",
-              "Access to 6 free fonts",
+              "2 image generations per month",
+              "Basic outline colors",
+              "Standard border thickness options",
+              "PNG/JPG support",
             ]}
           />
           <PlanCard
             userDetails={userDetails}
             userEmail={userEmail}
             title="Pro ✨"
-            description="Everything in the free plan, plus more that makes your tbi designs better"
-            price="$4"
+            description="Professional outline generation with advanced features"
+            price="$9"
             features={[
-              "Unlimited generations / account",
-              "Access to all 250 fonts",
+              "Unlimited image generations",
+              "Custom RGB color selection",
+              "Adjustable border thickness",
+              "Priority processing",
+              "API access for integration",
             ]}
           />
         </div>

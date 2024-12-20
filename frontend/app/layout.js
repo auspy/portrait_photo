@@ -4,6 +4,7 @@ import Providers from "../components/Providers";
 import { Analytics } from "@vercel/analytics/react";
 import Script from "next/script";
 import { SpeedInsights } from "@vercel/speed-insights/next";
+import { ClerkProvider } from "@clerk/nextjs";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -40,30 +41,30 @@ export const metadata = {
 export default function RootLayout({ children }) {
   const googleAnalytics = process.env.NEXT_PUBLIC_GOOGLE_ADD_ID;
   return (
-    // <ClerkProvider>
-    <html lang="en">
-      {googleAnalytics && (
-        <>
-          <Script
-            async
-            src={`https://www.googletagmanager.com/gtag/js?id=${googleAnalytics}`}
-          ></Script>
-          <Script id="google-analytics">
-            {`window.dataLayer = window.dataLayer || [];
+    <ClerkProvider>
+      <html lang="en">
+        {googleAnalytics && (
+          <>
+            <Script
+              async
+              src={`https://www.googletagmanager.com/gtag/js?id=${googleAnalytics}`}
+            ></Script>
+            <Script id="google-analytics">
+              {`window.dataLayer = window.dataLayer || [];
   function gtag(){dataLayer.push(arguments);}
   gtag('js', new Date());
 
   gtag('config', '${googleAnalytics}');`}
-          </Script>
-        </>
-      )}
-      <body className={`${inter.className}  `}>
-        <Providers>{children}</Providers>
-        <Analytics />
-        <SpeedInsights />
-        {/* <VizolvClient /> */}
-      </body>
-    </html>
-    // </ClerkProvider>
+            </Script>
+          </>
+        )}
+        <body className={`${inter.className}  `}>
+          <Providers>{children}</Providers>
+          <Analytics />
+          <SpeedInsights />
+          {/* <VizolvClient /> */}
+        </body>
+      </html>
+    </ClerkProvider>
   );
 }

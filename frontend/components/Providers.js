@@ -1,7 +1,7 @@
 "use client";
-
 import { ThemeProvider } from "@/components/theme-provider";
-
+import { Toaster } from "@/components/ui/toaster";
+import { RateLimitProvider } from "@/providers/rate-limit-provider";
 const Providers = ({ children }) => {
   return (
     <ThemeProvider
@@ -10,7 +10,10 @@ const Providers = ({ children }) => {
       enableSystem
       disableTransitionOnChange
     >
-      {children}
+      <RateLimitProvider>
+        {children}
+        <Toaster />
+      </RateLimitProvider>
     </ThemeProvider>
   );
 };

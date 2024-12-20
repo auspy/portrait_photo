@@ -22,7 +22,7 @@ export function ColorPicker({ color, onChange, className }: ColorPickerProps) {
           aria-label="Choose color"
         />
         <div
-          className="h-10 w-10 rounded-md ring-1 ring-input bg-[url('/checkered-pattern.png')] bg-center"
+          className="h-10 w-10 rounded-md ring-1 ring-input bg-center"
           style={{ backgroundColor: color }}
         >
           <div

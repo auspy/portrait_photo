@@ -8,6 +8,40 @@ import { Slider } from "./ui/slider";
 import { ImageIcon, UploadIcon, ChevronDown, ChevronUp } from "lucide-react";
 import { ColorPicker } from "./ui/color-picker";
 import { useTheme } from "next-themes";
+import { urlPython } from "@/constants";
+import { useToast } from "@/hooks/use-toast";
+import { useRouter } from "next/navigation";
+import { useRateLimit } from "@/providers/rate-limit-provider";
+import { useUser } from "@clerk/nextjs";
+
+// Add the utility function for Python backend communication
+async function processPythonBackend(
+  image: File,
+  borderColor: string,
+  borderSize: number,
+  user: any,
+  userPlan: string
+) {
+  const formData = new FormData();
+  formData.append("image", image);
+  formData.append("border_color", borderColor);
+  formData.append("border_size", borderSize.toString());
+
+  const response = await fetch(`${urlPython}/process`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${user.id}|${userPlan}`,
+    },
+    body: formData,
+  });
+
+  if (!response.ok) {
+    const error = await response.text();
+    throw new Error(`Backend processing failed: ${error}`);
+  }
+
+  return await response.blob();
+}
 
 interface ImageEditorProps {
   initialImage?: File;
@@ -26,39 +60,51 @@ const BORDER_PRESETS: BorderPreset[] = [
 
 export function ImageEditor({ initialImage }: ImageEditorProps) {
   const { theme } = useTheme();
+  const { user } = useUser();
   const [image, setImage] = useState<File | null>(initialImage || null);
   const [preview, setPreview] = useState<string | null>(null);
-  const [borderSize, setBorderSize] = useState(1);
+  const [borderSize, setBorderSize] = useState(4);
   const [borderColor, setBorderColor] = useState("#FFFFFF");
   const [isProcessing, setIsProcessing] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const dropZoneRef = useRef<HTMLDivElement>(null);
   const [showAdvanced, setShowAdvanced] = useState(false);
+  const router = useRouter();
+  const { toast } = useToast();
+  const { isRateLimited } = useRateLimit();
 
   const processImage = useCallback(async () => {
     if (!image) return;
 
     setIsProcessing(true);
     try {
-      const formData = new FormData();
-      formData.append("image", image);
-      formData.append("border_color", borderColor);
-      formData.append("border_size", borderSize.toString());
-
-      const response = await fetch("http://localhost:8000/process", {
-        method: "POST",
-        body: formData,
-      });
-
-      const blob = await response.blob();
-      setPreview(URL.createObjectURL(blob));
+      // get user plan from metadata
+      const userPlan = user?.publicMetadata?.plan || "free";
+      const blob = await processPythonBackend(
+        image,
+        borderColor,
+        borderSize,
+        user,
+        userPlan as string
+      );
+      const imageUrl = URL.createObjectURL(blob);
+      setPreview(imageUrl);
+      router.push(`/success?image=${encodeURIComponent(imageUrl)}`);
     } catch (error) {
       console.error("Failed to process image:", error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description:
+          typeof error === "string"
+            ? error
+            : "Failed to process image. Please try again.",
+      });
     } finally {
       setIsProcessing(false);
     }
-  }, [image, borderColor, borderSize]);
+  }, [image, borderColor, borderSize, router, toast]);
 
   const handleImageUpload = useCallback(
     (fileOrEvent: File | React.ChangeEvent<HTMLInputElement>) => {
@@ -206,11 +252,15 @@ export function ImageEditor({ initialImage }: ImageEditorProps) {
 
         <Button
           onClick={processImage}
-          disabled={!image || isProcessing}
+          disabled={!image || isProcessing || isRateLimited}
           className="w-full"
           variant="default"
         >
-          {isProcessing ? "Processing..." : "Apply Changes"}
+          {isProcessing
+            ? "Processing..."
+            : isRateLimited
+            ? `Rate limit exceeded, please upgrade to continue`
+            : "Apply Changes"}
         </Button>
       </div>
     </div>

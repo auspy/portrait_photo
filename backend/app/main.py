@@ -15,20 +15,34 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
-from fastapi import FastAPI, UploadFile, HTTPException, Form
-from fastapi.responses import Response
+from fastapi import FastAPI, UploadFile, Form, Header, Request
+from fastapi.responses import Response, JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from .services.extractor import ImageProcessor
+from .services.rate_limiter import (
+    check_rate_limit,
+    validate_auth_header,
+    consume_rate_limit,
+)
+from .utils.error_handler import (
+    file_error,
+    processing_error,
+    validation_error,
+    rate_limit_error,
+    unauthorized_error,
+    AppError,
+)
+from typing import Optional
 import os
 
-app = FastAPI(title="Object Border Effect API")
+app = FastAPI(title="Picture Outline API")
 
 # Configure CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["http://localhost:3000", "http://localhost:8000"],
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST"],
     allow_headers=["*"],
 )
 
@@ -43,11 +57,29 @@ async def health_check():
     return {"status": "healthy"}
 
 
+@app.get("/rate-limit")
+async def get_rate_limit(authorization: Optional[str] = Header(None)):
+    """Get rate limit information for a user"""
+    try:
+        user_id, plan = validate_auth_header(authorization)
+        if not user_id:
+            raise unauthorized_error(
+                message="Unauthorized", details="Invalid authorization header"
+            )
+        return JSONResponse(check_rate_limit(user_id, plan))
+    except Exception as e:
+        if isinstance(e, AppError):
+            raise e
+        raise rate_limit_error(message="Failed to get rate limit info", details=str(e))
+
+
 @app.post("/process")
 async def process_image(
+    request: Request,
     image: UploadFile,
     border_color: str = Form(default="white"),
     border_size: int = Form(default=20),
+    authorization: Optional[str] = Header(None),
 ):
     """
     Process an image to add a border effect around the main object
@@ -55,18 +87,57 @@ async def process_image(
     - border_color: Color of the border (default: white)
     - border_size: Thickness of the border in pixels (default: 20)
     """
-    if not image.content_type.startswith("image/"):
-        raise HTTPException(status_code=400, detail="File must be an image")
-
     try:
-        print("border_color", border_color, "border_size", border_size)
+        print("Processing image")
+        print("Border color: ", border_color)
+        print("Border size: ", border_size)
+        print("Authorization: ", authorization)
+        # Validate auth and check rate limit
+        user_id, plan = validate_auth_header(authorization)
+        if not user_id:
+            raise unauthorized_error(
+                message="Unauthorized", details="Invalid authorization header"
+            )
+
+        # Check rate limit without consuming
+        rate_limit_info = check_rate_limit(user_id, plan)
+        print("Rate limit info: ", rate_limit_info)
+        if rate_limit_info["remaining"] <= 0:
+            raise rate_limit_error(
+                message=f"Rate limit exceeded. Resets in {rate_limit_info['reset']} seconds",
+                details=rate_limit_info,
+            )
+
+        if not image.content_type.startswith("image/"):
+            raise file_error(
+                message="Invalid file type", details="File must be an image (PNG/JPG)"
+            )
+
         # Read image data
         image_data = await image.read()
 
         # Process the image
-        result = await ImageProcessor.process_image(
-            image_data, border_color, border_size
-        )
+        try:
+            result = await ImageProcessor.process_image(
+                image_data, border_color, border_size
+            )
+        except ValueError as e:
+            raise validation_error(
+                message=str(e), details="Invalid processing parameters"
+            )
+        except Exception as e:
+            raise processing_error(message="Failed to process image", details=str(e))
+
+        # Consume rate limit after successful processing
+        if plan != "pro" and result:
+            print("Consuming rate limit")
+            response = consume_rate_limit(user_id, plan)
+            print("Rate limit consumed: ", response)
+            if not response.allowed:
+                raise rate_limit_error(
+                    message="Rate limit exceeded during processing",
+                    details=response,
+                )
 
         # Get original filename without extension
         filename = os.path.splitext(image.filename)[0]
@@ -79,4 +150,6 @@ async def process_image(
         # Return the processed image with the custom filename
         return Response(content=result, media_type="image/png", headers=headers)
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        if isinstance(e, AppError):
+            raise e
+        raise processing_error(message="An unexpected error occurred", details=str(e))
