@@ -1,24 +1,47 @@
 "use client";
 
+import { Input } from "./input";
+import { Label } from "./label";
+import { cn } from "@/lib/utils";
+
 interface ColorPickerProps {
   color: string;
   onChange: (color: string) => void;
+  className?: string;
 }
 
-export function ColorPicker({ color, onChange }: ColorPickerProps) {
+export function ColorPicker({ color, onChange, className }: ColorPickerProps) {
   return (
-    <div className="flex items-center gap-2">
-      <input
-        type="color"
-        value={color}
-        onChange={(e) => onChange(e.target.value)}
-        className="w-8 h-8 rounded cursor-pointer"
-      />
-      <input
+    <div className={cn("flex items-center gap-3", className)}>
+      <div className="relative">
+        <Input
+          type="color"
+          value={color}
+          onChange={(e) => onChange(e.target.value)}
+          className="h-10 w-10 cursor-pointer opacity-0 absolute inset-0"
+          aria-label="Choose color"
+        />
+        <div
+          className="h-10 w-10 rounded-md ring-1 ring-input bg-[url('/checkered-pattern.png')] bg-center"
+          style={{ backgroundColor: color }}
+        >
+          <div
+            className="w-full h-full rounded-md"
+            style={{ backgroundColor: color }}
+          />
+        </div>
+      </div>
+      <Input
         type="text"
-        value={color}
-        onChange={(e) => onChange(e.target.value)}
-        className="flex-1 px-2 py-1 border rounded"
+        value={color.toUpperCase()}
+        onChange={(e) => {
+          const value = e.target.value;
+          if (value.match(/^#[0-9A-Fa-f]{0,6}$/)) {
+            onChange(value);
+          }
+        }}
+        className="h-10 font-mono uppercase bg-background"
+        placeholder="#000000"
       />
     </div>
   );

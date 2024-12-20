@@ -1,14 +1,14 @@
 import type { Config } from "tailwindcss";
 const plugin = require("tailwindcss/plugin");
 
-const colors = {
-  border: "#e5e5e5",
-  primary: "#007AFF",
-  dark: "#151515",
-  lightRed: "#E6F2FF",
-  accent: "#FF9442",
-  background: "#f9f9f9",
-};
+// const colors = {
+//   border: "#e5e5e5",
+//   primary: "#007AFF",
+//   dark: "#151515",
+//   lightRed: "#E6F2FF",
+//   accent: "#FF9442",
+//   background: "#f9f9f9",
+// };
 
 const config = {
   darkMode: ["class"],
@@ -33,11 +33,16 @@ const config = {
     },
     extend: {
       colors: {
-        ...colors,
+        // ...colors,
+        border: "hsl(var(--border))",
         input: "hsl(var(--input))",
         ring: "hsl(var(--ring))",
         background: "hsl(var(--background))",
         foreground: "hsl(var(--foreground))",
+        primary: {
+          DEFAULT: "hsl(var(--primary))",
+          foreground: "hsl(var(--primary-foreground))",
+        },
         secondary: {
           DEFAULT: "hsl(var(--secondary))",
           foreground: "hsl(var(--secondary-foreground))",
@@ -49,6 +54,10 @@ const config = {
         muted: {
           DEFAULT: "hsl(var(--muted))",
           foreground: "hsl(var(--muted-foreground))",
+        },
+        accent: {
+          DEFAULT: "hsl(var(--accent))",
+          foreground: "hsl(var(--accent-foreground))",
         },
         popover: {
           DEFAULT: "hsl(var(--popover))",
