@@ -8,7 +8,7 @@ import { Slider } from "./ui/slider";
 import { ImageIcon, UploadIcon, ChevronDown, ChevronUp } from "lucide-react";
 import { ColorPicker } from "./ui/color-picker";
 import { useTheme } from "next-themes";
-import { urlPython } from "@/constants";
+import { urlPython, MAX_FILE_SIZE } from "@/constants";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
 import { useRateLimit } from "@/providers/rate-limit-provider";
@@ -116,12 +116,32 @@ export function ImageEditor({ initialImage }: ImageEditorProps) {
         file = fileOrEvent.target.files?.[0] || null;
       }
 
-      if (file && file.type.startsWith("image/")) {
+      if (file) {
+        if (!file.type.startsWith("image/")) {
+          toast({
+            variant: "destructive",
+            title: "Invalid file type",
+            description: "Please upload an image file (PNG/JPG).",
+          });
+          return;
+        }
+
+        if (file.size > MAX_FILE_SIZE) {
+          toast({
+            variant: "destructive",
+            title: "File too large",
+            description: `Maximum file size is ${
+              MAX_FILE_SIZE / (1024 * 1024)
+            }MB`,
+          });
+          return;
+        }
+
         setImage(file);
         setPreview(URL.createObjectURL(file));
       }
     },
-    []
+    [toast]
   );
 
   const onDragOver = useCallback((e: React.DragEvent<HTMLDivElement>) => {

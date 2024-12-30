@@ -34,6 +34,7 @@ from .utils.error_handler import (
 )
 from typing import Optional
 import os
+from .core.settings import settings
 
 app = FastAPI(title="Picture Outline API")
 
@@ -83,7 +84,7 @@ async def process_image(
 ):
     """
     Process an image to add a border effect around the main object
-    - image: Input image file (PNG/JPG)
+    - image: Input image file (PNG/JPG, max 10MB)
     - border_color: Color of the border (default: white)
     - border_size: Thickness of the border in pixels (default: 20)
     """
@@ -92,6 +93,21 @@ async def process_image(
         print("Border color: ", border_color)
         print("Border size: ", border_size)
         print("Authorization: ", authorization)
+
+        # Check file size
+        file_size = 0
+        chunk_size = 1024  # Read in 1KB chunks
+        while chunk := await image.read(chunk_size):
+            file_size += len(chunk)
+            if file_size > settings.MAX_FILE_SIZE:
+                raise file_error(
+                    message="File too large",
+                    details=f"Maximum file size is {settings.MAX_FILE_SIZE // (1024 * 1024)}MB",
+                )
+
+        # Reset file position after reading
+        await image.seek(0)
+
         # Validate auth and check rate limit
         user_id, plan = validate_auth_header(authorization)
         if not user_id:
@@ -119,7 +135,7 @@ async def process_image(
         # Process the image
         try:
             result = await ImageProcessor.process_image(
-                image_data, border_color, border_size
+                image_data, border_color, border_size, "filled"
             )
         except ValueError as e:
             raise validation_error(

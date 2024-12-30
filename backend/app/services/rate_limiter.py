@@ -55,7 +55,7 @@ def check_rate_limit(user_id: str, plan: str = "free") -> Dict[str, Any]:
     limiter = get_rate_limiter(plan)
     identifier = get_identifier(user_id, plan)
     remaining = limiter.get_remaining(identifier)
-
+    print(f"Remaining: {remaining}, plan: {plan}, user_id: {user_id}")
     return {
         "remaining": remaining,
         "plan": plan,
@@ -73,6 +73,7 @@ def consume_rate_limit(user_id: str, plan: str = "free") -> bool:
     limiter = get_rate_limiter(plan)
     identifier = get_identifier(user_id, plan)
     response = limiter.limit(identifier)
+    print(f"Response: {response}, plan: {plan}, user_id: {user_id}")
     return response
 
 
