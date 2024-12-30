@@ -27,6 +27,11 @@ class Settings(BaseSettings):
     # File limits
     MAX_FILE_SIZE: int = 10 * 1024 * 1024  # 10MB
 
+    # Uvicorn settings
+    UVIORN_WORKERS: int = 1
+    UVIORN_HOST: str = "0.0.0.0"
+    UVIORN_PORT: int = 8000
+
     class Config:
         env_file = ".env"
         case_sensitive = True

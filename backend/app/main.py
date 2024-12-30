@@ -31,6 +31,7 @@ from .utils.error_handler import (
 )
 from typing import Optional
 import os
+import uvicorn
 from .core.settings import settings
 
 app = FastAPI(title="Picture Outline API")
@@ -163,3 +164,12 @@ async def process_image(
         if isinstance(e, AppError):
             raise e
         raise processing_error(message="An unexpected error occurred", details=str(e))
+
+
+if __name__ == "__main__":
+    uvicorn.run(
+        app,
+        host=settings.UVIORN_HOST,
+        port=settings.UVIORN_PORT,
+        workers=settings.UVIORN_WORKERS,
+    )
