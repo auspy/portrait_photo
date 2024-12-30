@@ -39,7 +39,12 @@ app = FastAPI(title="Picture Outline API")
 # Configure CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://localhost:8000"],
+    allow_origins=[
+        "http://localhost:3000",
+        "http://localhost:8000",
+        "https://pictureoutlinegenerator.in",
+        "https://www.pictureoutlinegenerator.in",
+    ],
     allow_credentials=True,
     allow_methods=["GET", "POST"],
     allow_headers=["*"],
