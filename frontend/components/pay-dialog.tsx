@@ -214,7 +214,7 @@ const PayDialog: React.FC<PayDialogProps> = ({
             userEmail={userEmail}
             title="Pro ✨"
             description="Professional outline generation with advanced features"
-            price="$9"
+            price="$4"
             features={[
               "Unlimited image generations",
               "Custom RGB color selection",
