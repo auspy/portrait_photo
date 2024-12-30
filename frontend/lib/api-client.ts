@@ -30,29 +30,47 @@ export async function apiFetch<T>(
     }
 
     // Make the request
+    console.log("headers", headers, restOptions);
     const response = await fetch(`${urlPython}${endpoint}`, {
       headers,
       ...restOptions,
     });
+    console.log("response", response);
 
     // Handle non-JSON responses (like images)
     const contentType = response.headers.get("content-type");
     if (contentType?.includes("image/")) {
+      console.log("response.ok", response.ok);
+      if (!response.ok) {
+        const error = new Error("Failed to fetch image") as ApiError;
+        error.status = response.status;
+        throw error;
+      }
+      console.log("response.blob()", response.blob());
       return response.blob() as Promise<T>;
     }
 
-    // Parse JSON response
-    const data = await response.json();
+    // For non-image responses, handle JSON
+    try {
+      const data = await response.json();
+      console.log("response.json()", data);
 
-    // Handle API errors
-    if (!response.ok) {
-      const error = new Error(data.message || "API Error") as ApiError;
+      // Handle API errors
+      if (!response.ok) {
+        const error = new Error(data.message || "API Error") as ApiError;
+        error.status = response.status;
+        error.details = data.details;
+        throw error;
+      }
+
+      return data;
+    } catch (parseError: any) {
+      // Handle JSON parsing errors
+      const error = new Error("Invalid response format") as ApiError;
       error.status = response.status;
-      error.details = data.details;
+      error.details = { parseError: parseError?.message };
       throw error;
     }
-
-    return data;
   } catch (error: any) {
     // Enhance error with more details if needed
     try {

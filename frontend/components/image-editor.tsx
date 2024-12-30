@@ -92,9 +92,6 @@ export function ImageEditor({ initialImage }: ImageEditorProps) {
       const imageUrl = URL.createObjectURL(blob);
       setPreview(imageUrl);
       router.push(`/success?image=${encodeURIComponent(imageUrl)}`);
-
-      // Refresh rate limit after successful processing
-      refreshRateLimit();
     } catch (error: any) {
       console.error("Failed to process image:", error);
       toast({
