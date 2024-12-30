@@ -7,12 +7,18 @@ import {
   ReactNode,
 } from "react";
 import { useUser } from "@clerk/nextjs";
-import { urlPython } from "@/constants";
+import { apiGet } from "@/lib/api-client";
 
 interface RateLimitState {
   remainingGenerations: number | null;
   isRateLimited: boolean;
   isPro: boolean;
+}
+
+interface RateLimitResponse {
+  remaining: number;
+  reset?: number;
+  total: number;
 }
 
 interface RateLimitContextType extends RateLimitState {
@@ -66,31 +72,31 @@ export function RateLimitProvider({ children }: { children: ReactNode }) {
     if (!user) return;
 
     try {
-      const url = `${urlPython}/rate-limit`;
-      const plan = user.publicMetadata?.plan || "free";
-      console.log("url", url);
-      const response = await fetch(url, {
-        method: "GET",
-        headers: {
-          Authorization: `Bearer ${user.id}|${plan}`,
-        },
+      const plan = (user.publicMetadata?.plan as "free" | "pro") || "free";
+      const data = await apiGet<RateLimitResponse>("/rate-limit", {
+        userId: user.id,
+        plan,
       });
 
-      if (response.ok) {
-        const data = await response.json();
-        const isPro = plan === "pro";
+      const isPro = plan === "pro";
+      const newState: RateLimitState = {
+        remainingGenerations: isPro ? Infinity : data.remaining,
+        isRateLimited: !isPro && data.remaining === 0,
+        isPro,
+      };
 
-        const newState: RateLimitState = {
-          remainingGenerations: isPro ? Infinity : data.remaining,
-          isRateLimited: !isPro && data.remaining === 0,
-          isPro,
-        };
-
-        setState(newState);
-        setRateLimitCache(newState);
-      }
+      setState(newState);
+      setRateLimitCache(newState);
     } catch (error) {
       console.error("Failed to refresh rate limit info:", error);
+      // Set rate limited state when API fails
+      const newState: RateLimitState = {
+        remainingGenerations: 0,
+        isRateLimited: true,
+        isPro: user.publicMetadata?.plan === "pro" || false,
+      };
+      setState(newState);
+      setRateLimitCache(newState);
     }
   }, [user]);
 

@@ -13,37 +13,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
 import { useRateLimit } from "@/providers/rate-limit-provider";
 import { useUser } from "@clerk/nextjs";
-
-// Add the utility function for Python backend communication
-async function processPythonBackend(
-  image: File,
-  borderColor: string,
-  borderSize: number,
-  outlineStyle: string,
-  user: any,
-  userPlan: string
-) {
-  const formData = new FormData();
-  formData.append("image", image);
-  formData.append("border_color", borderColor);
-  formData.append("border_size", borderSize.toString());
-  formData.append("outline_style", outlineStyle);
-
-  const response = await fetch(`${urlPython}/process`, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${user.id}|${userPlan}`,
-    },
-    body: formData,
-  });
-
-  if (!response.ok) {
-    const error = await response.text();
-    throw new Error(`Backend processing failed: ${error}`);
-  }
-
-  return await response.blob();
-}
+import { apiPost } from "@/lib/api-client";
 
 interface ImageEditorProps {
   initialImage?: File;
@@ -84,6 +54,7 @@ const COLOR_PRESETS = [
 export function ImageEditor({ initialImage }: ImageEditorProps) {
   const { theme } = useTheme();
   const { user } = useUser();
+  const { refresh: refreshRateLimit, isRateLimited } = useRateLimit();
   const [image, setImage] = useState<File | null>(initialImage || null);
   const [preview, setPreview] = useState<string | null>(null);
   const [borderSize, setBorderSize] = useState(4);
@@ -97,40 +68,54 @@ export function ImageEditor({ initialImage }: ImageEditorProps) {
   const [showAdvancedColor, setShowAdvancedColor] = useState(false);
   const router = useRouter();
   const { toast } = useToast();
-  const { isRateLimited } = useRateLimit();
 
   const processImage = useCallback(async () => {
-    if (!image) return;
+    if (!image || !user) return;
 
     setIsProcessing(true);
     try {
-      // get user plan from metadata
-      const userPlan = user?.publicMetadata?.plan || "free";
-      const blob = await processPythonBackend(
-        image,
-        borderColor,
-        borderSize,
-        outlineStyle,
-        user,
-        userPlan as string
-      );
+      // Create form data
+      const formData = new FormData();
+      formData.append("image", image);
+      formData.append("border_color", borderColor);
+      formData.append("border_size", borderSize.toString());
+      formData.append("outline_style", outlineStyle);
+
+      // Process image using our new API client
+      const plan = (user.publicMetadata?.plan as "free" | "pro") || "free";
+      const blob = await apiPost<Blob>("/process", formData, {
+        userId: user.id,
+        plan,
+      });
+
+      // Create URL from blob and redirect
       const imageUrl = URL.createObjectURL(blob);
       setPreview(imageUrl);
       router.push(`/success?image=${encodeURIComponent(imageUrl)}`);
-    } catch (error) {
+
+      // Refresh rate limit after successful processing
+      refreshRateLimit();
+    } catch (error: any) {
       console.error("Failed to process image:", error);
       toast({
         variant: "destructive",
         title: "Error",
         description:
-          typeof error === "string"
-            ? error
-            : "Failed to process image. Please try again.",
+          error.details || error.message || "Failed to process image",
       });
     } finally {
       setIsProcessing(false);
     }
-  }, [image, borderColor, borderSize, outlineStyle, router, toast]);
+  }, [
+    image,
+    borderColor,
+    borderSize,
+    outlineStyle,
+    user,
+    router,
+    toast,
+    refreshRateLimit,
+  ]);
 
   const handleImageUpload = useCallback(
     (fileOrEvent: File | React.ChangeEvent<HTMLInputElement>) => {

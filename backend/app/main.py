@@ -19,11 +19,8 @@ from fastapi import FastAPI, UploadFile, Form, Header, Request
 from fastapi.responses import Response, JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from .services.extractor import ImageProcessor
-from .services.rate_limiter import (
-    check_rate_limit,
-    validate_auth_header,
-    consume_rate_limit,
-)
+from .services.rate_limiter import check_rate_limit, consume_rate_limit
+from .utils.auth import verify_token
 from .utils.error_handler import (
     file_error,
     processing_error,
@@ -62,11 +59,12 @@ async def health_check():
 async def get_rate_limit(authorization: Optional[str] = Header(None)):
     """Get rate limit information for a user"""
     try:
-        user_id, plan = validate_auth_header(authorization)
-        if not user_id:
-            raise unauthorized_error(
-                message="Unauthorized", details="Invalid authorization header"
-            )
+        # Verify JWT token
+        try:
+            user_id, plan = verify_token(authorization)
+        except ValueError as e:
+            raise unauthorized_error(str(e))
+
         return JSONResponse(check_rate_limit(user_id, plan))
     except Exception as e:
         if isinstance(e, AppError):
@@ -91,15 +89,15 @@ async def process_image(
     - outline_style: Style of the outline (hollow/filled, default: hollow)
     """
     try:
-        print("Processing image")
-        print("Border color: ", border_color)
-        print("Border size: ", border_size)
-        print("Outline style: ", outline_style)
-        print("Authorization: ", authorization)
+        # Verify JWT token first
+        try:
+            user_id, plan = verify_token(authorization)
+        except ValueError as e:
+            raise unauthorized_error(str(e))
 
         # Check file size
         file_size = 0
-        chunk_size = 1024  # Read in 1KB chunks
+        chunk_size = 1024
         while chunk := await image.read(chunk_size):
             file_size += len(chunk)
             if file_size > settings.MAX_FILE_SIZE:
@@ -108,25 +106,17 @@ async def process_image(
                     details=f"Maximum file size is {settings.MAX_FILE_SIZE // (1024 * 1024)}MB",
                 )
 
-        # Reset file position after reading
         await image.seek(0)
 
-        # Validate auth and check rate limit
-        user_id, plan = validate_auth_header(authorization)
-        if not user_id:
-            raise unauthorized_error(
-                message="Unauthorized", details="Invalid authorization header"
-            )
-
-        # Check rate limit without consuming
+        # Check rate limit
         rate_limit_info = check_rate_limit(user_id, plan)
-        print("Rate limit info: ", rate_limit_info)
         if rate_limit_info["remaining"] <= 0:
             raise rate_limit_error(
                 message=f"Rate limit exceeded. Resets in {rate_limit_info['reset']} seconds",
                 details=rate_limit_info,
             )
 
+        # Validate image
         if not image.content_type.startswith("image/"):
             raise file_error(
                 message="Invalid file type", details="File must be an image (PNG/JPG)"
@@ -147,7 +137,7 @@ async def process_image(
         except Exception as e:
             raise processing_error(message="Failed to process image", details=str(e))
 
-        # Consume rate limit after successful processing
+        # Consume rate limit for free users
         if plan != "pro" and result:
             print("Consuming rate limit")
             response = consume_rate_limit(user_id, plan)
@@ -158,7 +148,7 @@ async def process_image(
                     details=response,
                 )
 
-        # Get original filename without extension
+        # Return processed image
         filename = os.path.splitext(image.filename)[0]
 
         # Set content disposition header for the response
@@ -168,6 +158,7 @@ async def process_image(
 
         # Return the processed image with the custom filename
         return Response(content=result, media_type="image/png", headers=headers)
+
     except Exception as e:
         if isinstance(e, AppError):
             raise e
