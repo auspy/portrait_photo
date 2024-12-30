@@ -19,6 +19,7 @@ async function processPythonBackend(
   image: File,
   borderColor: string,
   borderSize: number,
+  outlineStyle: string,
   user: any,
   userPlan: string
 ) {
@@ -26,6 +27,7 @@ async function processPythonBackend(
   formData.append("image", image);
   formData.append("border_color", borderColor);
   formData.append("border_size", borderSize.toString());
+  formData.append("outline_style", outlineStyle);
 
   const response = await fetch(`${urlPython}/process`, {
     method: "POST",
@@ -58,6 +60,27 @@ const BORDER_PRESETS: BorderPreset[] = [
   { label: "Large", value: 24 },
 ];
 
+interface OutlineStyleOption {
+  label: string;
+  value: string;
+}
+
+const OUTLINE_STYLES: OutlineStyleOption[] = [
+  { label: "Filled", value: "filled" },
+  { label: "Hollow", value: "hollow" },
+];
+
+const COLOR_PRESETS = [
+  { label: "White", value: "#FFFFFF" },
+  { label: "Black", value: "#000000" },
+  { label: "Rose Gold", value: "#B76E79" },
+  { label: "Electric Blue", value: "#4361EE" },
+  { label: "Coral", value: "#FF6B6B" },
+  { label: "Mint", value: "#4ECDC4" },
+  { label: "Lavender", value: "#9B5DE5" },
+  { label: "Amber", value: "#F7B801" },
+];
+
 export function ImageEditor({ initialImage }: ImageEditorProps) {
   const { theme } = useTheme();
   const { user } = useUser();
@@ -65,11 +88,13 @@ export function ImageEditor({ initialImage }: ImageEditorProps) {
   const [preview, setPreview] = useState<string | null>(null);
   const [borderSize, setBorderSize] = useState(4);
   const [borderColor, setBorderColor] = useState("#FFFFFF");
+  const [outlineStyle, setOutlineStyle] = useState<string>("filled");
   const [isProcessing, setIsProcessing] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const dropZoneRef = useRef<HTMLDivElement>(null);
   const [showAdvanced, setShowAdvanced] = useState(false);
+  const [showAdvancedColor, setShowAdvancedColor] = useState(false);
   const router = useRouter();
   const { toast } = useToast();
   const { isRateLimited } = useRateLimit();
@@ -85,6 +110,7 @@ export function ImageEditor({ initialImage }: ImageEditorProps) {
         image,
         borderColor,
         borderSize,
+        outlineStyle,
         user,
         userPlan as string
       );
@@ -104,7 +130,7 @@ export function ImageEditor({ initialImage }: ImageEditorProps) {
     } finally {
       setIsProcessing(false);
     }
-  }, [image, borderColor, borderSize, router, toast]);
+  }, [image, borderColor, borderSize, outlineStyle, router, toast]);
 
   const handleImageUpload = useCallback(
     (fileOrEvent: File | React.ChangeEvent<HTMLInputElement>) => {
@@ -113,7 +139,7 @@ export function ImageEditor({ initialImage }: ImageEditorProps) {
       if (fileOrEvent instanceof File) {
         file = fileOrEvent;
       } else {
-        file = fileOrEvent.target.files?.[0] || null;
+        file = fileOrEvent?.target?.files?.[0] || null;
       }
 
       if (file) {
@@ -219,6 +245,22 @@ export function ImageEditor({ initialImage }: ImageEditorProps) {
       {/* Right side - Settings */}
       <div className="w-full md:w-1/2 space-y-6">
         <div className="space-y-3">
+          <Label>Outline Style</Label>
+          <div className="flex gap-2">
+            {OUTLINE_STYLES.map((style) => (
+              <Button
+                key={style.value}
+                variant={outlineStyle === style.value ? "default" : "outline"}
+                onClick={() => setOutlineStyle(style.value)}
+                className="flex-1"
+              >
+                {style.label}
+              </Button>
+            ))}
+          </div>
+        </div>
+
+        <div className="space-y-3">
           <Label>Border Width</Label>
           <div className="flex gap-2">
             {BORDER_PRESETS.map((preset) => (
@@ -263,11 +305,54 @@ export function ImageEditor({ initialImage }: ImageEditorProps) {
           )}
         </div>
 
-        <div>
+        <div className="space-y-3">
           <Label htmlFor="border-color">Border Color</Label>
-          <div className="flex items-center gap-2 mt-1.5">
-            <ColorPicker color={borderColor} onChange={setBorderColor} />
+          <div className="flex gap-2 mb-3 overflow-x-auto pb-2">
+            {COLOR_PRESETS.map((color) => (
+              <Button
+                key={color.value}
+                variant={borderColor === color.value ? "default" : "outline"}
+                onClick={() => setBorderColor(color.value)}
+                className="w-8 h-8 p-0 relative flex-shrink-0"
+                style={{
+                  backgroundColor: color.value,
+                  border: `1px solid ${
+                    color.value === "#FFFFFF" ? "#e2e8f0" : color.value
+                  }`,
+                }}
+                title={color.label}
+              >
+                {borderColor === color.value && (
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <div
+                      className={`w-2 h-2 rounded-full ${
+                        color.value === "#FFFFFF" ? "bg-black" : "bg-white"
+                      }`}
+                    />
+                  </div>
+                )}
+              </Button>
+            ))}
           </div>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="ghost"
+              onClick={() => setShowAdvancedColor(!showAdvancedColor)}
+              className="w-full flex items-center justify-between px-3 py-2 text-sm hover:bg-muted"
+            >
+              <span>Custom Color</span>
+              {showAdvancedColor ? (
+                <ChevronUp className="h-4 w-4" />
+              ) : (
+                <ChevronDown className="h-4 w-4" />
+              )}
+            </Button>
+          </div>
+          {showAdvancedColor && (
+            <div className="pt-2">
+              <ColorPicker color={borderColor} onChange={setBorderColor} />
+            </div>
+          )}
         </div>
 
         <Button

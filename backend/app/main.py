@@ -80,6 +80,7 @@ async def process_image(
     image: UploadFile,
     border_color: str = Form(default="white"),
     border_size: int = Form(default=20),
+    outline_style: str = Form(default="hollow"),
     authorization: Optional[str] = Header(None),
 ):
     """
@@ -87,11 +88,13 @@ async def process_image(
     - image: Input image file (PNG/JPG, max 10MB)
     - border_color: Color of the border (default: white)
     - border_size: Thickness of the border in pixels (default: 20)
+    - outline_style: Style of the outline (hollow/filled, default: hollow)
     """
     try:
         print("Processing image")
         print("Border color: ", border_color)
         print("Border size: ", border_size)
+        print("Outline style: ", outline_style)
         print("Authorization: ", authorization)
 
         # Check file size
@@ -135,7 +138,7 @@ async def process_image(
         # Process the image
         try:
             result = await ImageProcessor.process_image(
-                image_data, border_color, border_size, "filled"
+                image_data, border_color, border_size, outline_style
             )
         except ValueError as e:
             raise validation_error(
