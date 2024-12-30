@@ -55,18 +55,20 @@ const PlanCard: React.FC<Plan> = ({
   const handleDirectToPaymentLink = async () => {
     setLoading(true);
     try {
-      const response = await axios.post("/api/create-checkout-session", {
-        user_id: userDetails.id,
-        email: userEmail,
-        plan_name: "Picture Outline Generator Pro Plan",
+      const response = await axios.post("/api/create-payment", {
+        planType: "monthly",
       });
 
-      router.push(response.data.paymentLink);
+      if (response.data.paymentUrl) {
+        router.push(response.data.paymentUrl);
+      } else {
+        throw new Error("No payment URL received");
+      }
     } catch (error) {
-      console.error("Error creating checkout session:", error);
+      console.error("Error creating payment link:", error);
       toast({
         title: "Error",
-        description: "Failed to create checkout session",
+        description: "Failed to create payment link",
         variant: "destructive",
       });
     } finally {

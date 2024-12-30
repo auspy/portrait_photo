@@ -6,3 +6,5 @@ export const alt = "Picture Outline Generator";
 export const isDev = process.env.NODE_ENV === "development";
 export const MAX_FILE_SIZE =
   Number(process.env.MAX_FILE_SIZE) || 10 * 1024 * 1024; // 10MB in bytes
+export const supportEmail =
+  process.env.SUPPORT_EMAIL || "kshetez.vinayak@gmail.com";
