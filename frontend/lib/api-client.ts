@@ -121,3 +121,32 @@ export function apiPost<T>(
     ...options,
   });
 }
+
+// Add the utility function for Python backend communication
+export async function processPythonBackend(
+  image: File,
+  borderColor: string,
+  borderSize: number,
+  user: any,
+  userPlan: "free" | "pro"
+) {
+  const formData = new FormData();
+  formData.append("image", image);
+  formData.append("border_color", borderColor);
+  formData.append("border_size", borderSize.toString());
+
+  const response = await fetch(`${urlPython}/process`, {
+    method: "POST",
+    headers: {
+      Authorization: await getAuthHeader(user.id, userPlan),
+    },
+    body: formData,
+  });
+
+  if (!response.ok) {
+    const error = await response.text();
+    throw new Error(`Backend processing failed: ${error}`);
+  }
+
+  return await response.blob();
+}

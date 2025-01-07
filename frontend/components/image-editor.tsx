@@ -13,7 +13,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
 import { useRateLimit } from "@/providers/rate-limit-provider";
 import { useUser } from "@clerk/nextjs";
-import { apiPost } from "@/lib/api-client";
+import { apiPost, processPythonBackend } from "@/lib/api-client";
 
 interface ImageEditorProps {
   initialImage?: File;
@@ -83,12 +83,13 @@ export function ImageEditor({ initialImage }: ImageEditorProps) {
 
       // Process image using our new API client
       const plan = (user.publicMetadata?.plan as "free" | "pro") || "free";
-      const blob = await apiPost<Blob>("/process", formData, {
-        userId: user.id,
-        plan,
-      });
-
-      // Create URL from blob and redirect
+      const blob = await processPythonBackend(
+        image,
+        borderColor,
+        borderSize,
+        user,
+        plan
+      );
       const imageUrl = URL.createObjectURL(blob);
       setPreview(imageUrl);
       router.push(`/success?image=${encodeURIComponent(imageUrl)}`);
