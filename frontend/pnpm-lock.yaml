@@ -93,7 +93,7 @@ dependencies:
     specifier: ^3.3.11
     version: 3.4.33(openai@4.76.3)(react@18.3.1)(svelte@5.13.0)(vue@3.5.13)(zod@3.24.1)
   axios:
-    specifier: ^1.7.2
+    specifier: ^1.7.9
     version: 1.7.9
   class-variance-authority:
     specifier: ^0.7.0

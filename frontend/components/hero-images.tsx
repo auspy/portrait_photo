@@ -5,7 +5,7 @@ import { LayoutGrid } from "./ui/layout-grid";
 import POV from "@/public/examples/sneakers.png";
 import Ride from "@/public/examples/kimono_girl.png";
 import SF from "@/public/examples/smartphone.png";
-import Goats from "@/public/examples/dog.png";
+import Goats from "@/public/examples/waiter.png";
 
 export function HeroImages() {
   return (

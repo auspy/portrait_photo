@@ -13,9 +13,7 @@ export const ParallaxScroll = ({
   className?: string;
 }) => {
   const gridRef = useRef<any>(null);
-  const { scrollYProgress } = useScroll({
-
-  });
+  const { scrollYProgress } = useScroll({});
 
   const translateFirst = useTransform(scrollYProgress, [0, 1], [0, -200]);
   const translateSecond = useTransform(scrollYProgress, [0, 1], [0, 0]);
@@ -44,7 +42,7 @@ export const ParallaxScroll = ({
             >
               <Image
                 src={el}
-                className="w-full object-cover object-left-top rounded-lg gap-10 !m-0 !p-0"
+                className="w-full object-cover min-h-[500px] rounded-lg gap-10 !m-0 !p-0"
                 width={400}
                 height={400}
                 alt="thumbnail"
@@ -57,7 +55,7 @@ export const ParallaxScroll = ({
             <motion.div style={{ y: translateSecond }} key={"grid-2" + idx}>
               <Image
                 src={el}
-                className="w-full object-cover object-left-top rounded-lg gap-10 !m-0 !p-0"
+                className="w-full object-cover min-h-[500px] rounded-lg gap-10 !m-0 !p-0"
                 width={400}
                 height={400}
                 alt="thumbnail"
@@ -70,7 +68,7 @@ export const ParallaxScroll = ({
             <motion.div style={{ y: translateThird }} key={"grid-3" + idx}>
               <Image
                 src={el}
-                className="w-full object-cover object-left-top rounded-lg gap-10 !m-0 !p-0"
+                className="w-full object-cover min-h-[500px] rounded-lg gap-10 !m-0 !p-0"
                 width={400}
                 height={400}
                 alt="thumbnail"

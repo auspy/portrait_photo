@@ -8,6 +8,8 @@ import { HoverBorderGradient } from "@/components/ui/hover-border-gradient";
 import { AdditionalInfo } from "@/components/additional-info";
 import Link from "next/link";
 import { SignInButton, SignedIn, SignedOut } from "@clerk/nextjs";
+import { HeroParallaxImages } from "@/components/hero-parallax-images";
+import SiteFooter from "../components/SiteFooter";
 
 const page = () => {
   return (
@@ -56,6 +58,9 @@ const page = () => {
       <div className="w-full h-full mt-2">
         <HeroImages />
       </div>
+      <div className="w-full h-full">
+        <HeroParallaxImages />
+      </div>
       <div className="flex flex-col items-center justify-center my-10">
         <AdditionalInfo />
         <div className="text-2xl mt-10 text-foreground">
@@ -71,6 +76,16 @@ const page = () => {
           - All Rights Reserved - Created by Kshetez Vinayak
         </div>
         <div className="text-center text-muted-foreground text-xs mt-2">
+          Follow me on{" "}
+          <Link
+            href={"https://twitter.com/kshetezvinayak"}
+            target="_blank"
+            className="hover:text-foreground underline"
+            rel="noopener noreferrer"
+          >
+            Twitter
+          </Link>
+          {" • "}
           Landing page forked from{" "}
           <Link
             href={"https://github.com/RexanWONG/text-behind-image"}
@@ -82,6 +97,7 @@ const page = () => {
           </Link>
         </div>
       </div>
+      <SiteFooter />
     </div>
   );
 };
